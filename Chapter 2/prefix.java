@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.PriorityQueue;
@@ -23,19 +24,30 @@ public class prefix {
     BufferedReader f = new BufferedReader(new FileReader("prefix.in"));
     PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter("prefix.out")));
 
-    ArrayList<String> primitives = new ArrayList<>();
-    int longestPrimitive = 1;
+    ArrayList<String> rawPrimitives = new ArrayList<>();
     StringTokenizer st = new StringTokenizer(f.readLine());
     while (true) {
       String p = st.nextToken();
       if (p.equals(".")) {
         break;
       }
-      longestPrimitive = Math.max(longestPrimitive, p.length());
-      primitives.add(p);
+      rawPrimitives.add(p);
       if (!st.hasMoreTokens()) {
         st = new StringTokenizer(f.readLine());
       }
+    }
+
+    ArrayList<String> primitives = new ArrayList<>();
+    int longestPrimitive = 1;
+    for (String p : rawPrimitives) {
+      if (isUniquePrimitive(p, rawPrimitives)) {
+        longestPrimitive = Math.max(longestPrimitive, p.length());
+        primitives.add(p);
+      }
+    }
+
+    for (String p : primitives) {
+      System.out.println(p);
     }
 
     ArrayDeque<Character> window = new ArrayDeque<>();
@@ -53,17 +65,15 @@ public class prefix {
     while (marks.size() > 0) {
       previousMark = currentMark;
       currentMark = marks.poll();
-      int count = previousMark;
-      while (count < currentMark && (next = f.read()) != -1) {
+      for (int count = previousMark; count < currentMark; count++) {
+        window.poll();
+        next = f.read();
         if ((char)next == '\n') {
           next = f.read();
-          if (next == -1) {
-            break;
-          }
         }
-        window.poll();
-        window.add((char) next);
-        count++;
+        if (next != -1) {
+          window.add((char) next);
+        }
       }
       for (String primitive : primitives) {
         if (primitive.length() <= window.size()) {
@@ -75,9 +85,10 @@ public class prefix {
               break;
             }
           }
-          if (matches && !markSet.contains(currentMark + primitive.length())) {
-            markSet.add(currentMark + primitive.length());
-            marks.add(currentMark + primitive.length());
+          int newMark = currentMark + primitive.length();
+          if (matches && !markSet.contains(newMark)) {
+            markSet.add(newMark);
+            marks.add(newMark);
           }
         }
       }
@@ -86,4 +97,54 @@ public class prefix {
     out.println(currentMark);
     out.close();
   }
+
+  static void printWindow(ArrayDeque<Character> window) {
+    System.out.print("Current window:");
+    for (char c : window) {
+      System.out.print(" " + c);
+    }
+    System.out.println();
+  }
+
+  static boolean isUniquePrimitive(String primitive, ArrayList<String> rawShortPrims) {
+    PriorityQueue<Integer> marks = new PriorityQueue<>();
+    HashSet<Integer> markSet = new HashSet<>();
+
+    ArrayList<String> shortPrims = new ArrayList<>();
+    for (String p : rawShortPrims) {
+      if (p.length() < primitive.length()) {
+        shortPrims.add(p);
+      }
+    }
+
+    marks.add(0);
+    int next;
+    int currentMark = 0;
+    int previousMark = 0;
+    while (marks.size() > 0) {
+      previousMark = currentMark;
+      currentMark = marks.poll();
+      for (String p : shortPrims) {
+        if (p.length() <= (primitive.length() - currentMark)) {
+          boolean matches = true;
+          for (int i = 0; i < p.length(); i++) {
+            if (p.charAt(i) != primitive.charAt(currentMark + i)) {
+              matches = false;
+              break;
+            }
+          }
+          int newMark = currentMark + p.length();
+          if (matches && !markSet.contains(newMark)) {
+            markSet.add(newMark);
+            marks.add(newMark);
+          }
+        }
+      }
+    }
+    if (currentMark == primitive.length()) {
+      return false;
+    }
+    return true;
+  }
+
 }
