@@ -15,7 +15,6 @@ import java.util.StringTokenizer;
 public class nocows {
 
   private static int[][] pedigrees;
-  private static int[][] pedigreesNoMin;
   private static int k;
 
   public static void main(String[] args) throws IOException {
@@ -27,63 +26,49 @@ public class nocows {
     k = Integer.parseInt(st.nextToken());
 
     pedigrees = new int[n + 1][k + 1];
-    pedigreesNoMin = new int[n + 1][k + 1];
     for (int i = 0; i <= n; i++) {
       // No trees of height 0
       pedigrees[i][0] = 0;
-      pedigreesNoMin[i][0] = 0;
       // The only tree of height 1 has 1 node
       pedigrees[i][1] = i == 1 ? 1 : 0;
-      pedigreesNoMin[i][1] = i == 1 ? 1 : 0;
       
       for (int j = 2; j <= k; j++) {
-        if (i == 0 || i > Math.pow(2, j) - 1) {
-          pedigrees[i][j] = 0;
-          pedigreesNoMin[i][j] = 0;
-        } else if (i < 2 * j - 1) {
+        if (i == 0 || i > Math.pow(2, j) - 1 || i < 2 * j - 1) {
           pedigrees[i][j] = 0;
         } else {
           pedigrees[i][j] = -1;
-          pedigreesNoMin[i][j] = -1;
         }
       }
     }
+    pedigrees[3][2] = 1;
 
-    out.println(countTrees(n, k, true));
+    out.println(countTrees(n, k));
     out.close();
   }
 
-  static int countTrees(int oldN, int curK, boolean heightMatters) {
-    // System.out.print("Called countTrees(" + oldN + ", " + curK + ")");
-    // if (heightMatters) {
-    //   System.out.println(" HM");
-    // } else {
-    //   System.out.println("");
-    // }
-
-    if (heightMatters && pedigrees[oldN][curK] != -1) {
-      return pedigrees[oldN][curK];
-    } else if (!heightMatters && pedigreesNoMin[oldN][curK] != -1) {
-      return pedigreesNoMin[oldN][curK];
+  static int countTrees(int n, int curK) {
+    if (pedigrees[n][curK] != -1) {
+      return pedigrees[n][curK];
     }
 
-    int sum = 0;
-    for (int i = n ; i > n / 2; i -= 2) {
-      sum += 2 * (countTrees(i, kLeft - 1, heightMatters) * countTrees(n - i, kLeft - 1, false)); 
+    long sum = 0;
+    for (int i = n - 2; i > n / 2; i -= 2) {
+      for (int j = 1; j < curK - 1; j++) {
+        sum += countTrees(i, j) * countTrees(n - 1 - i, curK - 1);
+        sum += countTrees(i, curK - 1) * countTrees(n - 1 - i, j);
+      }
+      sum += countTrees(i, curK - 1) * countTrees(n - 1 - i, curK - 1);
     }
-    if (n % 4 == 0) {
-      int a = countTrees(n / 2, kLeft - 1, heightMatters);
-      sum += a * a;
+    sum *= 2;
+    if ((n - 1) % 4 == 2) {
+      for (int j = 1; j < curK - 1; j++) {
+        sum += countTrees(n / 2, j) * countTrees(n / 2, curK - 1);
+        sum += countTrees(n / 2, curK - 1) * countTrees(n / 2, j);
+      }
+      sum += countTrees(n / 2, curK - 1) * countTrees(n / 2, curK - 1);
     }
-    sum %= 9901;
-    if (heightMatters) {
-      pedigrees[oldN][kLeft] = sum;
-      System.out.println("Count for (" + oldN + ", " + kLeft + ") HM: " + sum);
-    } else {
-      pedigreesNoMin[oldN][kLeft] = sum;
-      System.out.println("Count for (" + oldN + ", " + kLeft + "): " + sum);
-    }
-    return sum;
+    pedigrees[n][curK] = (int)(sum % 9901);
+    return (int)(sum % 9901);
   }
 
 }
